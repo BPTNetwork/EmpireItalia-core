@@ -1,0 +1,1 @@
+F:\EmpireItalia\artifact\FXServer.exe +exec server.cfg +set sv_enforceGameBuild 3407

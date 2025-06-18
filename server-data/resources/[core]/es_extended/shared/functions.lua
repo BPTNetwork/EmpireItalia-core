@@ -1,5 +1,4 @@
 local Charset = {}
-
 for i = 48, 57 do
     table.insert(Charset, string.char(i))
 end
@@ -24,7 +23,6 @@ end)
 ---@return string
 function ESX.GetRandomString(length)
     math.randomseed(GetGameTimer())
-
     return length > 0 and ESX.GetRandomString(length - 1) .. Charset[math.random(1, #Charset)] or ""
 end
 
@@ -37,22 +35,19 @@ end
 ---@return number, table
 function ESX.GetWeapon(weaponName)
     weaponName = string.upper(weaponName)
-
     assert(weaponsByName[weaponName], "Invalid weapon name!")
-
     local index = weaponsByName[weaponName]
     return index, Config.Weapons[index]
 end
 
----@param weaponHash number
+---@param weaponHash number|string
 ---@return table
 function ESX.GetWeaponFromHash(weaponHash)
     weaponHash = type(weaponHash) == "string" and joaat(weaponHash) or weaponHash
-
     return weaponsByHash[weaponHash]
 end
 
----@param byHash boolean
+---@param byHash boolean|nil
 ---@return table
 function ESX.GetWeaponList(byHash)
     return byHash and weaponsByHash or Config.Weapons
@@ -62,22 +57,18 @@ end
 ---@return string
 function ESX.GetWeaponLabel(weaponName)
     weaponName = string.upper(weaponName)
-
     assert(weaponsByName[weaponName], "Invalid weapon name!")
-
     local index = weaponsByName[weaponName]
     return Config.Weapons[index].label or ""
 end
 
 ---@param weaponName string
 ---@param weaponComponent string
----@return table | nil
+---@return table|nil
 function ESX.GetWeaponComponent(weaponName, weaponComponent)
     weaponName = string.upper(weaponName)
-
     assert(weaponsByName[weaponName], "Invalid weapon name!")
     local weapon = Config.Weapons[weaponsByName[weaponName]]
-
     for _, component in ipairs(weapon.components) do
         if component.name == weaponComponent then
             return component
@@ -86,34 +77,28 @@ function ESX.GetWeaponComponent(weaponName, weaponComponent)
 end
 
 ---@param table table
----@param nb? number
+---@param nb number|nil
 ---@return string
 function ESX.DumpTable(table, nb)
-    if nb == nil then
-        nb = 0
-    end
-
+    nb = nb or 0
     if type(table) == "table" then
         local s = ""
-        for _ = 1, nb + 1, 1 do
+        for _ = 1, nb + 1 do
             s = s .. "    "
         end
-
         s = "{\n"
         for k, v in pairs(table) do
             if type(k) ~= "number" then
                 k = '"' .. k .. '"'
             end
-            for _ = 1, nb, 1 do
+            for _ = 1, nb do
                 s = s .. "    "
             end
             s = s .. "[" .. k .. "] = " .. ESX.DumpTable(v, nb + 1) .. ",\n"
         end
-
-        for _ = 1, nb, 1 do
+        for _ = 1, nb do
             s = s .. "    "
         end
-
         return s .. "}"
     else
         return tostring(table)
@@ -121,39 +106,30 @@ function ESX.DumpTable(table, nb)
 end
 
 ---@param value any
----@param numDecimalPlaces? number
+---@param numDecimalPlaces number|nil
 ---@return number
 function ESX.Round(value, numDecimalPlaces)
     return ESX.Math.Round(value, numDecimalPlaces)
 end
 
----@param value string
----@param ... any
----@return boolean, string?
+---@param value any
+---@param ... string
+---@return boolean, string|nil
 function ESX.ValidateType(value, ...)
     local types = { ... }
     if #types == 0 then
         return true
     end
-
     local mapType = {}
-    for i = 1, #types, 1 do
-        local validateType = types[i]
-        assert(type(validateType) == "string", "bad argument types, only expected string") -- should never use anyhing else than string
+    for _, validateType in ipairs(types) do
+        assert(type(validateType) == "string", "bad argument types, only expected string")
         mapType[validateType] = true
     end
-
     local valueType = type(value)
-
-    local matches = mapType[valueType] ~= nil
-
-    if not matches then
+    if not mapType[valueType] then
         local requireTypes = table.concat(types, " or ")
-        local errorMessage = ("bad value (%s expected, got %s)"):format(requireTypes, valueType)
-
-        return false, errorMessage
+        return false, ("bad value (%s expected, got %s)"):format(requireTypes, valueType)
     end
-
     return true
 end
 
@@ -161,86 +137,71 @@ end
 ---@return boolean
 function ESX.AssertType(...)
     local matches, errorMessage = ESX.ValidateType(...)
-
     assert(matches, errorMessage)
-
     return matches
 end
 
----@param val unknown
+---@param val any
+---@return boolean
 function ESX.IsFunctionReference(val)
     local typeVal = type(val)
-
     return typeVal == "function" or (typeVal == "table" and type(getmetatable(val)?.__call) == "function")
 end
 
----@param conditionFunc function A function that is repeatedly called until it returns a truthy value or the timeout is exceeded.
----@param errorMessage? string Optional. If set, an error will be thrown with this message if the condition is not met within the timeout. If not set, no error will be thrown.
----@param timeoutMs? number Optional. The maximum time to wait (in milliseconds) for the condition to be met. Defaults to 1000ms.
----@return boolean, any: Returns success status and the returned value of the condition function.
+---@param conditionFunc function
+---@param errorMessage string|nil
+---@param timeoutMs number|nil
+---@return boolean, any
 function ESX.Await(conditionFunc, errorMessage, timeoutMs)
     timeoutMs = timeoutMs or 1000
-
     if timeoutMs < 0 then
         error("Timeout should be a positive number.")
     end
-
     if not ESX.IsFunctionReference(conditionFunc) then
         error("Condition Function should be a function reference.")
     end
-
-    -- since errorMessage is optional, we only validate it if the user provided it.
     if errorMessage then
-        ESX.AssertType(errorMessage, "string", "errorMessage should be a string.")
+        ESX.AssertType(errorMessage, "string")
     end
-
     local invokingResource = GetInvokingResource()
     local startTimeMs = GetGameTimer()
     while GetGameTimer() - startTimeMs < timeoutMs do
         local result = conditionFunc()
-
         if result then
             return true, result
         end
-
         Wait(0)
     end
-
     if errorMessage then
         error(("[%s] -> %s"):format(invokingResource, errorMessage))
     end
-
     return false
 end
 
 ---@param str string
----@param allowDigits boolean? Allow numbers if necessary
+---@param allowDigits boolean|nil
 ---@return boolean
 function ESX.IsValidLocaleString(str, allowDigits)
     if not ESX.ValidateType(str, "string") then
         return false
     end
-
     local locale = string.lower(Config.Locale)
-
     local defaultRanges = {
-        { 0x0041, 0x005A }, -- Basic Latin uppercase
-        { 0x0061, 0x007A }, -- Basic Latin lowercase
-        { 0x0020, 0x0020 }, -- Space
-        { 0x002D, 0x002D }, -- Dash
-        { 0x00C0, 0x02AF }, -- Latin Extended
+        { 0x0041, 0x005A },
+        { 0x0061, 0x007A },
+        { 0x0020, 0x0020 },
+        { 0x002D, 0x002D },
+        { 0x00C0, 0x02AF },
     }
-
     if allowDigits then
-        defaultRanges[#defaultRanges + 1] = { 0x0030, 0x0039 } -- 0-9 Numbers
+        table.insert(defaultRanges, { 0x0030, 0x0039 })
     end
-
     local localeRanges = {
-        ["el"] = { { 0x0370, 0x03FF } }, -- Greek
-        ["sr"] = { { 0x0400, 0x04FF } }, -- Cyrillic
-        ["he"] = { { 0x05D0, 0x05EA } }, -- Hebrew letters
+        ["el"] = { { 0x0370, 0x03FF } },
+        ["sr"] = { { 0x0400, 0x04FF } },
+        ["he"] = { { 0x05D0, 0x05EA } },
         ["ar"] = {
-            { 0x0620, 0x063F }, -- Arabic
+            { 0x0620, 0x063F },
             { 0x0641, 0x064A },
             { 0x066E, 0x066F },
             { 0x0671, 0x06D3 },
@@ -248,42 +209,34 @@ function ESX.IsValidLocaleString(str, allowDigits)
             { 0x0750, 0x077F },
             { 0x08A0, 0x08BD },
         },
-        ["zh-cn"] = { { 0x4E00, 0x9FFF } }, -- CJK
+        ["zh-cn"] = { { 0x4E00, 0x9FFF } },
     }
-
     local validRanges = { table.unpack(defaultRanges) }
-
     if localeRanges[locale] then
-        for i = 1, #localeRanges[locale] do
-            validRanges[#validRanges + 1] = localeRanges[locale][i]
+        for _, range in ipairs(localeRanges[locale]) do
+            table.insert(validRanges, range)
         end
     end
-
     if Config.ValidCharacterSets then
         for charset, enabled in pairs(Config.ValidCharacterSets) do
             if enabled and charset ~= locale and localeRanges[charset] then
-                for i = 1, #localeRanges[charset] do
-                    validRanges[#validRanges + 1] = localeRanges[charset][i]
+                for _, range in ipairs(localeRanges[charset]) do
+                    table.insert(validRanges, range)
                 end
             end
         end
     end
-
     for _, code in utf8.codes(str) do
         local isValid = false
-
-        for i = 1, #validRanges do
-            local range = validRanges[i]
+        for _, range in ipairs(validRanges) do
             if code >= range[1] and code <= range[2] then
                 isValid = true
                 break
             end
         end
-
         if not isValid then
             return false
         end
     end
-
     return true
 end

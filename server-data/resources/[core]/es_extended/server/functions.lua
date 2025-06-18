@@ -27,8 +27,8 @@ end
 ---@param name string | table
 ---@param group string | table
 ---@param cb function
----@param allowConsole? boolean
----@param suggestion? table
+---@param allowConsole boolean
+---@param suggestion table
 function ESX.RegisterCommand(name, group, cb, allowConsole, suggestion)
     if type(name) == "table" then
         for _, v in ipairs(name) do
@@ -196,7 +196,7 @@ local function updateHealthAndArmorInMetadata(xPlayer)
 end
 
 ---@param xPlayer table
----@param cb? function
+---@param cb function
 ---@return nil
 function Core.SavePlayer(xPlayer, cb)
     if not xPlayer.spawned then

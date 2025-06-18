@@ -27,7 +27,10 @@
 
 	window.onload = function() {
 		window.addEventListener('message', (event) => {
+			if (event.origin !== 'nui://game' && event.origin !== '') return;
+
 			if (typeof event.data !== 'object' || !event.data.action) return;
+
 			onData(event.data);
 		});
 	};

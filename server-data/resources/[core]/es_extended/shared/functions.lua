@@ -145,7 +145,8 @@ end
 ---@return boolean
 function ESX.IsFunctionReference(val)
     local typeVal = type(val)
-    return typeVal == "function" or (typeVal == "table" and type(getmetatable(val)?.__call) == "function")
+    local mt = getmetatable(val)
+    return typeVal == "function" or (typeVal == "table" and mt and type(mt.__call) == "function")
 end
 
 ---@param conditionFunc function

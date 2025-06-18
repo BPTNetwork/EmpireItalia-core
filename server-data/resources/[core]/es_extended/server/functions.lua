@@ -353,7 +353,7 @@ end
 ---@param identifier string
 ---@return number playerId
 function ESX.GetPlayerIdFromIdentifier(identifier)
-    return Core.playersByIdentifier[identifier]?.source
+    return Core.playersByIdentifier[identifier] and Core.playersByIdentifier[identifier].source
 end
 
 ---@param source number
